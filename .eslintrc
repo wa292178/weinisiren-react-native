@@ -1,0 +1,7 @@
+{
+    "extends": ["standard", "standard-react"],
+    "plugins": ["node", "promise", "node", "react", "react-native"],
+    "globals": {
+        "fetch": false
+    }
+}
