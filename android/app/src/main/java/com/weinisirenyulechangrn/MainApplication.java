@@ -3,12 +3,6 @@ package com.weinisirenyulechangrn;
 import android.app.Application;
 
 import com.facebook.react.ReactApplication;
-import com.burnweb.rnwebview.RNWebViewPackage;
-import com.reactnativecomponent.splashscreen.RCTSplashScreenPackage;
-import com.github.yamill.orientation.OrientationPackage;
-import com.learnium.RNDeviceInfo.RNDeviceInfo;
-import com.calendarevents.CalendarEventsPackage;
-import cn.jpush.reactnativejpush.JPushPackage;
 import com.facebook.react.ReactNativeHost;
 import com.facebook.react.ReactPackage;
 import com.facebook.react.shell.MainReactPackage;
@@ -16,6 +10,12 @@ import com.facebook.soloader.SoLoader;
 
 import java.util.Arrays;
 import java.util.List;
+
+import com.reactnativecomponent.splashscreen.RCTSplashScreenPackage;
+import com.github.yamill.orientation.OrientationPackage;
+import com.learnium.RNDeviceInfo.RNDeviceInfo;
+import com.calendarevents.CalendarEventsPackage;
+import cn.jpush.reactnativejpush.JPushPackage;
 
 public class MainApplication extends Application implements ReactApplication {
 
@@ -32,7 +32,6 @@ public class MainApplication extends Application implements ReactApplication {
     protected List<ReactPackage> getPackages() {
       return Arrays.<ReactPackage>asList(
           new MainReactPackage(),
-            new RNWebViewPackage(),
             new RCTSplashScreenPackage(),
             new OrientationPackage(),
             new RNDeviceInfo(),

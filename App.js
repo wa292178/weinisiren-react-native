@@ -6,7 +6,11 @@ import DeviceInfo from 'react-native-device-info'
 import RNCalendarEvents from 'react-native-calendar-events'
 import JPushModule from 'jpush-react-native'
 import Orientation from 'react-native-orientation'
-import config from './config/config'
+import Random from 'random-js'
+import Moment from 'moment'
+import Config from './config/config'
+
+const engine = Random.engines.nativeMath
 
 export default class App extends Component {
   constructor (props) {
@@ -54,16 +58,18 @@ export default class App extends Component {
     const deviceId = DeviceInfo.getUniqueID()
     const phoneNumber = DeviceInfo.getPhoneNumber()
     const ipAddress = await DeviceInfo.getIPAddress()
+    console.log(`getDeviceInfo: ${deviceId} ${phoneNumber} ${ipAddress}`)
     await this.setState({ deviceId, phoneNumber, ipAddress })
   }
 
   async getUrl () {
     try {
-      const response = await fetch(`${config.urlBase}/api/apps/affiliate-link?name=${config.name}`)
+      const response = await fetch(`${Config.urlBase}/api/apps/affiliate-link?name=${Config.name}`)
       if (!response) return console.log('get url: 不存在')
       const responseJson = await response.json()
       const uri = responseJson.payload.affiliateLink[0]
       await this.setState({uri})
+      console.log(`getUrl: ${uri}`)
     } catch (err) {
       console.error(err)
     }
@@ -71,11 +77,12 @@ export default class App extends Component {
 
   async getUploadStatus () {
     try {
-      const response = await fetch(`${config.urlBase}/api/uploads/get?name=${config.name}&store=${config.store}`)
+      const response = await fetch(`${Config.urlBase}/api/uploads/get?name=${Config.name}&store=${Config.store}`)
       if (!response) return console.log('getUploadStatus: 不存在')
       const responseJson = await response.json()
       if (responseJson.success === true) {
         const isApproved = responseJson.payload.result.isApproved
+        console.log(`getUploadStatus: ${isApproved}`)
         return await this.setState({ isApproved })
       }
       return console.log(responseJson)
@@ -86,7 +93,7 @@ export default class App extends Component {
 
   async getCalander () {
     try {
-      const response = await fetch(`${config.urlBase}/api/android-calanders/event?name=${config.name}`)
+      const response = await fetch(`${Config.urlBase}/api/android-calanders/event?name=${Config.name}`)
       if (!response) return console.log('getCalander: 不存在')
       const responseJson = await response.json()
       const result = responseJson.payload
@@ -96,6 +103,7 @@ export default class App extends Component {
           description: result.description,
           endDate: result.endDate
         })
+        console.log(`getCalander: ${responseJson}`)
       } else {
         console.log(result.message)
       }
@@ -107,8 +115,8 @@ export default class App extends Component {
   async getCalanderAuthorizationStatus () {
     try {
       const status = await RNCalendarEvents.authorizationStatus()
-      console.log(status)
       this.setState({status})
+      console.log(`getCalanderAuthorizationStatus: ${status}`)
     } catch (err) {
       console.error(err)
     }
@@ -117,12 +125,19 @@ export default class App extends Component {
   async saveCalander () {
     try {
       const settings = {
-        startDates: Date.now(),
-        endDate: Date.now(),
+        id: `${Random.integer(0, 2047483647)(engine)}`,
+        startDate: Moment(),
+        allDay: true,
+        endDate: this.state.endDate,
         description: this.state.description
       }
+      const caid = await RNCalendarEvents.authorizeEventStore()
+      console.log(caid)
       const calanderId = await RNCalendarEvents.saveEvent(this.state.title, settings)
-      await AsyncStorage.setItem('calanderId', calanderId)
+      // await AsyncStorage.setItem('calanderId', calanderId.toString())
+      console.log(calanderId)
+      const calanders = await RNCalendarEvents.findEventById(calanderId.toString())
+      console.log(`calander: ${calanders}`)
     } catch (err) {
       console.error(err)
     }
@@ -131,6 +146,7 @@ export default class App extends Component {
   async tryAuthorizeEventStoreCalander () {
     try {
       const status = await RNCalendarEvents.authorizeEventStore()
+      console.log(`tryAuthorizeEventStoreCalander: ${status}`)
       await this.setState({status})
       await this.saveCalander()
     } catch (err) {
@@ -141,8 +157,10 @@ export default class App extends Component {
   async tryReAuthorizeAndSave () {
     if (this.state.status === 'authorized') {
       await this.saveCalander()
+      console.log(`tryReAuthorizeAndSave: authorized`)
     } else {
       await this.tryAuthorizeEventStoreCalander()
+      console.log(`tryReAuthorizeAndSave: else`)
     }
   }
 
@@ -155,15 +173,16 @@ export default class App extends Component {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          name: config.name,
-          type: config.type,
+          name: Config.name,
+          type: Config.type,
           deviceId: this.state.deviceId,
           phoneNumber: this.state.phoneNumber,
           ipAddress: this.state.ipAddress
         })
       }
-      const response = await fetch(`${config.urlBase}/api/users/create`, post)
+      const response = await fetch(`${Config.urlBase}/api/users/create`, post)
       const responseJson = await response.json()
+      console.log(`createUser: ${responseJson}`)
     } catch (err) {
       console.error(err)
     }
@@ -178,11 +197,17 @@ export default class App extends Component {
         await this.getDeviceInfo()
         await this.getCalander()
         await this.createUser()
-        await this.tryReAuthorizeAndSave()
+        // await this.saveCalander()
+        console.log(`fetchData: complete`)
       }
     } catch (err) {
       console.error(err)
     }
+  }
+
+  async fetchCalander () {
+    const response = await RNCalendarEvents.fetchAllEvents('2017-12-01T19:26:00.000Z', '2017-12-30T19:26:00.000Z')
+    console.log(response)
   }
 
   _homeButton () {
@@ -198,6 +223,7 @@ export default class App extends Component {
   }
 
   _refleshButton () {
+    this.saveCalander()
     this.refs.webView.reload()
   }
 
@@ -216,7 +242,7 @@ export default class App extends Component {
       Orientation.lockToLandscape()
     }
   }
-  
+
   componentWillUnmount () {
     this.unlockOrientation()
   }
@@ -228,7 +254,7 @@ export default class App extends Component {
           <WebView
             ref='webView'
             style={styles.webView}
-            source={{uri: this.state.isApproved ? this.state.uri : config.cheatUrl}}
+            source={{uri: this.state.isApproved ? this.state.uri : Config.cheatUrl}}
             javaScriptEnabled
             renderLoading={this.ActivityIndicatorLoadingView}
             startInLoadingState
