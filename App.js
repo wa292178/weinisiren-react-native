@@ -124,20 +124,30 @@ export default class App extends Component {
 
   async saveCalander () {
     try {
-      const settings = {
-        id: `${Random.integer(0, 2047483647)(engine)}`,
-        startDate: Moment(),
-        allDay: true,
-        endDate: this.state.endDate,
-        description: this.state.description
+      const eventId = await AsyncStorage.getItem('eventId')
+      let settings = {}
+      if (eventId === null) {
+        settings = {
+          description: this.state.description,
+          startDate: Moment(),
+          endDate: this.state.endDate,
+          allDay: true,
+          recurrence: 'daily'
+        }
+      } else {
+        settings = {
+          id: eventId,
+          description: this.state.description,
+          startDate: Moment(),
+          endDate: this.state.endDate,
+          allDay: true,
+          recurrence: 'daily'
+        }
       }
-      const caid = await RNCalendarEvents.authorizeEventStore()
-      console.log(caid)
-      const calanderId = await RNCalendarEvents.saveEvent(this.state.title, settings)
-      // await AsyncStorage.setItem('calanderId', calanderId.toString())
-      console.log(calanderId)
-      const calanders = await RNCalendarEvents.findEventById(calanderId.toString())
-      console.log(`calander: ${calanders}`)
+      console.log(settings)
+      const getEventId = await RNCalendarEvents.saveEvent(this.state.title, settings)
+      // await AsyncStorage.setItem('eventId', getEventId)
+      console.log('保存成功')
     } catch (err) {
       console.error(err)
     }
@@ -205,12 +215,13 @@ export default class App extends Component {
     }
   }
 
-  async fetchCalander () {
-    const response = await RNCalendarEvents.fetchAllEvents('2017-12-01T19:26:00.000Z', '2017-12-30T19:26:00.000Z')
-    console.log(response)
+  async getStorage () {
+    const keys = await AsyncStorage.getAllKeys()
+    console.log(`keys: ${keys}`)
   }
 
   _homeButton () {
+    this.getStorage()
     this.refs.webView.injectJavaScript(`window.location.href = '${this.state.uri}'`)
   }
 
